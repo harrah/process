@@ -1,5 +1,0 @@
-$ absent a/project
-[success]
-
-$ absent b/project
-[success]
