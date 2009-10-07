@@ -1,12 +1,14 @@
 /* sbt -- Simple Build Tool
  * Copyright 2009  Mark Harrah
  */
-package sbt
+package xsbt
 
 import java.lang.{Process => JProcess, ProcessBuilder => JProcessBuilder}
 import java.io.{Closeable, File, IOException}
 import java.io.{BufferedReader, InputStream, InputStreamReader, OutputStream, PipedInputStream, PipedOutputStream}
 import java.net.URL
+
+import OutputStreamBuilder.{fileInput, fileOutput, urlInput}
 
 /** Methods for constructing simple commands that can then be combined. */
 object Process
@@ -40,22 +42,22 @@ trait SourcePartialBuilder extends NotNull
 	* argument is call-by-name, so the stream is recreated, written, and closed each
 	* time this process is executed. */
 	def #>(out: => OutputStream): ProcessBuilder = #> (new OutputStreamBuilder(out))
-	def #>(b: ProcessBuilder): ProcessBuilder = new PipedProcessBuilder(toSource, b, false)
-	private def toFile(f: File, append: Boolean) = #> (new FileOutput(f, append))
+	def #>(b: ProcessBuilder): ProcessBuilder = SequentialProcessBuilder.piped(toSource, b, false, true)
+	private def toFile(f: File, append: Boolean) = #> (fileOutput(f, append))
 	def cat = toSource
 	protected def toSource: ProcessBuilder
 }
 trait SinkPartialBuilder extends NotNull
 {
 	/** Reads the given file into the input stream of this process. */
-	def #< (f: File): ProcessBuilder = #< (new FileInput(f))
+	def #< (f: File): ProcessBuilder = #< (fileInput(f))
 	/** Reads the given URL into the input stream of this process. */
-	def #< (f: URL): ProcessBuilder = #< (new URLInput(f))
+	def #< (f: URL): ProcessBuilder = #< (urlInput(f))
 	/** Reads the given InputStream into the input stream of this process. The
 	* argument is call-by-name, so the stream is recreated, read, and closed each
 	* time this process is executed. */
 	def #<(in: => InputStream): ProcessBuilder = #< (new InputStreamBuilder(in))
-	def #<(b: ProcessBuilder): ProcessBuilder = new PipedProcessBuilder(b, toSink, false)
+	def #<(b: ProcessBuilder): ProcessBuilder = SequentialProcessBuilder.piped(b, toSink, false, false)
 	protected def toSink: ProcessBuilder
 }
 
@@ -84,27 +86,15 @@ trait ProcessBuilder extends SourcePartialBuilder with SinkPartialBuilder
 	* sent to the console.*/
 	def ! : Int
 	/** Starts the process represented by this builder, blocks until it exits, and returns the exit code.  Standard output and error are
-	* sent to the given Logger.*/
-	def !(log: Logger): Int
-	/** Starts the process represented by this builder, blocks until it exits, and returns the exit code.  Standard output and error are
 	* sent to the console.  The newly started process reads from standard input of the current process if `connectInput` is true.*/
 	def !< : Int
-	/** Starts the process represented by this builder, blocks until it exits, and returns the exit code.  Standard output and error are
-	* sent to the given Logger.  The newly started process reads from standard input of the current process if `connectInput` is true.*/
-	def !<(log: Logger) : Int
 	/** Starts the process represented by this builder.  Standard output and error are sent to the console.*/
 	def run(): Process
-	/** Starts the process represented by this builder.  Standard output and error are sent to the given Logger.*/
-	def run(log: Logger): Process
 	/** Starts the process represented by this builder.  I/O is handled by the given ProcessIO instance.*/
 	def run(io: ProcessIO): Process
 	/** Starts the process represented by this builder.  Standard output and error are sent to the console.
 	* The newly started process reads from standard input of the current process if `connectInput` is true.*/
 	def run(connectInput: Boolean): Process
-	/** Starts the process represented by this builder, blocks until it exits, and returns the exit code.  Standard output and error are
-	* sent to the given Logger.
-	* The newly started process reads from standard input of the current process if `connectInput` is true.*/
-	def run(log: Logger, connectInput: Boolean): Process
 
 	/** Constructs a command that runs this command first and then `other` if this command succeeds.*/
 	def #&& (other: ProcessBuilder): ProcessBuilder

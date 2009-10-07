@@ -1,0 +1,7 @@
+This is a process API for Scala.  It was extracted from sbt to be used as a library for general Scala projects.  It has been cleaned up some for this purpose, but still needs more tests.  At some point this will be the implementation that sbt uses.
+
+For now, the documentation is the original sbt documentation at http://code.google.com/p/simple-build-tool/wiki/Process .
+
+The package is currently xsbt instead of sbt.
+
+The tests are written a Unix environment.  Cross-platform tests are possible by forking java, but take too long.
